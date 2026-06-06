@@ -7,7 +7,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
-CONTACTS_FILE = os.path.join(DATA_DIR, "contacts.xlsx")
+CONTACTS_FILE = os.path.join(DATA_DIR, "list.xlsx")
 INTERESTED_FILE = os.path.join(DATA_DIR, "interested.json")
 
 

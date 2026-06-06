@@ -41,8 +41,8 @@ body {
 
 .search-bar input {
   width: 100%;
-  padding: 12px 16px;
-  font-size: 16px;
+  padding: 14px 16px;
+  font-size: 17px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--card);
@@ -74,9 +74,6 @@ body {
   box-shadow: var(--shadow);
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 12px;
-  transition: transform 0.15s;
 }
 
 .contact-row {
@@ -94,14 +91,32 @@ body {
 .contact-name {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   word-break: break-word;
 }
 
-.contact-detail {
+.contact-title {
   font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.contact-company {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.contact-meta {
+  font-size: 12px;
   color: var(--muted);
-  word-break: break-all;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.contact-meta span {
+  display: inline-block;
+  margin-right: 10px;
 }
 
 .contact-actions {
@@ -137,7 +152,7 @@ body {
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
@@ -220,6 +235,7 @@ body {
   padding: 40px 20px;
   color: var(--muted);
   font-size: 15px;
+  line-height: 1.6;
 }
 
 .marked-badge {
@@ -244,17 +260,17 @@ mark {
   body { padding: 8px 16px; }
   .results {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
     gap: 8px;
   }
   .contact-card { padding: 12px 14px; }
 }
 
 @media (min-width: 768px) {
-  body { max-width: 900px; margin: 0 auto; padding: 16px 24px; }
+  body { max-width: 1000px; margin: 0 auto; padding: 16px 24px; }
   .results {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
     gap: 10px;
   }
 }
@@ -263,15 +279,18 @@ mark {
 <body>
 
 <div class="search-bar">
-  <input type="text" id="searchInput" placeholder="Search by name..." autocomplete="off" autofocus>
+  <input type="text" id="searchInput" placeholder="Search by first or last name..." autocomplete="off" autofocus>
 </div>
 <div class="stats" id="stats"></div>
-<div class="results" id="results"></div>
+<div class="results" id="results">
+  <div class="empty-state">Type a name to search through contacts.</div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
 let allContacts = [];
 let interestedIds = new Set();
+let loaded = false;
 
 async function init() {
   try {
@@ -282,29 +301,12 @@ async function init() {
     interested.forEach(e => {
       if (e.contact && e.contact._id) interestedIds.add(e.contact._id);
     });
-    render(allContacts);
+    loaded = true;
+    document.getElementById('stats').textContent = allContacts.length + ' contacts loaded';
   } catch (err) {
     document.getElementById('results').innerHTML =
-      '<div class="empty-state">Failed to load contacts. Make sure contacts.xlsx is in the app folder.</div>';
+      '<div class="empty-state">Failed to load contacts. Make sure list.xlsx is in the app folder.</div>';
   }
-}
-
-function getDisplayFields(contact) {
-  const skip = new Set(['_id']);
-  const nameKeys = [];
-  const otherKeys = [];
-  for (const key of Object.keys(contact)) {
-    if (skip.has(key)) continue;
-    if (/first|last|name/i.test(key)) nameKeys.push(key);
-    else otherKeys.push(key);
-  }
-  return { nameKeys, otherKeys };
-}
-
-function highlight(text, query) {
-  if (!query) return escHtml(text);
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return escHtml(text).replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
 }
 
 function escHtml(s) {
@@ -313,18 +315,34 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
-function render(contacts) {
-  const query = document.getElementById('searchInput').value.trim();
+function highlight(text, query) {
+  if (!query || !text) return escHtml(text || '');
+  const terms = query.split(/\s+/).filter(Boolean);
+  let result = escHtml(text);
+  terms.forEach(term => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+  });
+  return result;
+}
+
+function val(contact, key) {
+  return (contact[key] || '').trim();
+}
+
+function render(contacts, query) {
   const container = document.getElementById('results');
   const stats = document.getElementById('stats');
 
-  if (allContacts.length === 0) {
-    container.innerHTML = '<div class="empty-state">No contacts loaded. Place your contacts.xlsx file in the app folder and restart.</div>';
-    stats.textContent = '';
+  if (!loaded) return;
+
+  if (!query) {
+    container.innerHTML = '<div class="empty-state">Type a name to search through contacts.</div>';
+    stats.textContent = allContacts.length + ' contacts loaded';
     return;
   }
 
-  stats.textContent = `Showing ${contacts.length} of ${allContacts.length} contacts`;
+  stats.textContent = contacts.length + ' result' + (contacts.length !== 1 ? 's' : '') + ' found';
 
   if (contacts.length === 0) {
     container.innerHTML = '<div class="empty-state">No contacts match your search.</div>';
@@ -332,10 +350,16 @@ function render(contacts) {
   }
 
   container.innerHTML = contacts.map(c => {
-    const { nameKeys, otherKeys } = getDisplayFields(c);
-    const nameParts = nameKeys.map(k => c[k]).filter(Boolean);
-    const fullName = nameParts.length ? nameParts.join(' ') : 'Unnamed';
-    const details = otherKeys.map(k => c[k]).filter(Boolean).join(' · ');
+    const firstName = val(c, 'first name');
+    const lastName = val(c, 'last name');
+    const fullName = [firstName, lastName].filter(Boolean).join(' ') || val(c, 'contact name') || 'Unnamed';
+    const title = val(c, 'title');
+    const company = val(c, 'company name');
+    const email = val(c, 'email');
+    const phone = val(c, 'phone');
+    const city = val(c, 'city');
+    const country = val(c, 'country');
+    const location = [city, country].filter(Boolean).join(', ');
     const isMarked = interestedIds.has(c._id);
 
     return `
@@ -343,7 +367,13 @@ function render(contacts) {
         <div class="contact-row">
           <div class="contact-info">
             <div class="contact-name">${highlight(fullName, query)}</div>
-            <div class="contact-detail">${highlight(details, query)}</div>
+            ${title ? '<div class="contact-title">' + escHtml(title) + '</div>' : ''}
+            ${company ? '<div class="contact-company">' + escHtml(company) + '</div>' : ''}
+            <div class="contact-meta">
+              ${email ? '<span>' + escHtml(email) + '</span>' : ''}
+              ${phone ? '<span>' + escHtml(phone) + '</span>' : ''}
+              ${location ? '<span>' + escHtml(location) + '</span>' : ''}
+            </div>
             ${isMarked ? '<span class="marked-badge">INTERESTED</span>' : ''}
           </div>
           <div class="contact-actions">
@@ -386,8 +416,7 @@ async function submitInterested(id) {
     interestedIds.add(id);
     showToast('Contact saved!');
     const query = document.getElementById('searchInput').value.trim().toLowerCase();
-    const filtered = query ? filterContacts(query) : allContacts;
-    render(filtered);
+    if (query) render(filterContacts(query), query);
   } catch (err) {
     showToast('Error saving. Please try again.');
   }
@@ -396,9 +425,12 @@ async function submitInterested(id) {
 function filterContacts(query) {
   const terms = query.split(/\s+/);
   return allContacts.filter(c => {
-    const { nameKeys } = getDisplayFields(c);
-    const nameText = nameKeys.map(k => (c[k] || '').toLowerCase()).join(' ');
-    return terms.every(t => nameText.includes(t));
+    const searchable = [
+      (c['first name'] || ''),
+      (c['last name'] || ''),
+      (c['contact name'] || '')
+    ].join(' ').toLowerCase();
+    return terms.every(t => searchable.includes(t));
   });
 }
 
@@ -407,8 +439,11 @@ document.getElementById('searchInput').addEventListener('input', function() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     const query = this.value.trim().toLowerCase();
-    const filtered = query ? filterContacts(query) : allContacts;
-    render(filtered);
+    if (query) {
+      render(filterContacts(query), query);
+    } else {
+      render([], '');
+    }
   }, 100);
 });
 
