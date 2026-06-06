@@ -308,7 +308,7 @@ mark {
 
 <div class="header">
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="Search by first or last name..." autocomplete="off" autofocus>
+    <input type="text" id="searchInput" placeholder="Type at least 3 characters to search..." autocomplete="off" autofocus>
   </div>
   <div class="toolbar">
     <div class="stats" id="stats"></div>
@@ -316,7 +316,7 @@ mark {
   </div>
 </div>
 <div class="results" id="results">
-  <div class="empty-state">Type a name to search through contacts.</div>
+  <div class="empty-state">Type at least 3 characters to search.</div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -370,7 +370,7 @@ function render(contacts, query) {
   const stats = document.getElementById('stats');
 
   if (!query) {
-    container.innerHTML = '<div class="empty-state">Type a name to search through contacts.</div>';
+    container.innerHTML = '<div class="empty-state">Type at least 3 characters to search.</div>';
     stats.textContent = allContacts.length.toLocaleString() + ' contacts loaded';
     return;
   }
@@ -503,7 +503,7 @@ document.getElementById('searchInput').addEventListener('input', function() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     const query = this.value.trim().toLowerCase();
-    if (query) {
+    if (query.length >= 3) {
       render(filterContacts(query), query);
     } else {
       render([], '');
